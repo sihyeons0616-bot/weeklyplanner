@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weekly Planner</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Noto Sans KR 통일 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <style>
+    * {
+      font-family: 'Noto Sans KR', sans-serif !important;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f8fafc;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    
+    .drag-over {
+      background-color: rgba(226, 232, 240, 0.7) !important;
+      border: 2px dashed #94a3b8 !important;
+    }
+
+    /* Target hover effect */
+    .time-slot:hover {
+      background-color: #f8fafc;
+    }
+  </style>
+</head>
+<body class="bg-slate-100/70 text-slate-700 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white/80 backdrop-blur border-b border-slate-200/80 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="bg-slate-500 text-white p-2 rounded-xl shadow-sm">
+          <i data-lucide="calendar-check-2" class="w-5 h-5"></i>
+        </div>
+        <h1 class="text-xl font-bold tracking-tight text-slate-800">Weekly Planner</h1>
+      </div>
+
+      <!-- Navigation & User Info -->
+      <div class="flex items-center space-x-4">
+        <!-- Tabs -->
+        <nav class="flex bg-slate-200/60 p-1 rounded-xl text-xs font-medium">
+          <button id="tab-weekly-btn" onclick="switchTab('weekly')" class="px-3.5 py-1.5 rounded-lg transition-all duration-200 bg-white text-slate-800 shadow-sm font-semibold">
+            <span class="flex items-center gap-1.5"><i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> Weekly</span>
+          </button>
+          <button id="tab-monthly-btn" onclick="switchTab('monthly')" class="px-3.5 py-1.5 rounded-lg transition-all duration-200 text-slate-500 hover:text-slate-800">
+            <span class="flex items-center gap-1.5"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Monthly</span>
+          </button>
+        </nav>
+
+        <!-- User Profile / Login -->
+        <div class="border-l border-slate-200 pl-3 flex items-center">
+          <div id="user-badge" class="hidden items-center gap-2">
+            <div class="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs" id="user-avatar">
+              U
+            </div>
+            <span id="user-id-display" class="text-xs font-medium text-slate-600 hidden sm:inline">로그인됨</span>
+            <button onclick="handleLogout()" class="text-slate-400 hover:text-rose-500 p-1 rounded-lg transition" title="로그아웃">
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <button id="login-modal-btn" onclick="openAuthModal()" class="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1 shadow-sm">
+            <i data-lucide="user" class="w-3.5 h-3.5"></i> 로그인
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col">
+
+    <!-- TAB 1: WEEKLY PLANNER -->
+    <div id="tab-weekly" class="flex-1 flex flex-col lg:flex-row gap-5">
+      
+      <!-- Left Sidebar: Todo List -->
+      <aside class="w-full lg:w-80 bg-white rounded-2xl border border-slate-200/90 shadow-sm flex flex-col shrink-0 overflow-hidden">
+        <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+          <div class="flex items-center justify-between">
+            <h2 class="font-bold text-slate-800 flex items-center gap-2 text-sm">
+              <i data-lucide="check-square" class="w-4 h-4 text-slate-600"></i> To-do List
+            </h2>
+            <span id="todo-count" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-200/80 text-slate-600 font-medium">0개</span>
+          </div>
+        </div>
+
+        <!-- Add Todo Form -->
+        <div class="p-3.5 border-b border-slate-100 space-y-2 bg-slate-50/20">
+          <input type="text" id="new-todo-title" placeholder="할 일 입력..." class="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-400 bg-white">
+          <input type="text" id="new-todo-note" placeholder="자잘한 설명 / 메모 (선택사항)..." class="w-full px-3 py-1 text-[11px] border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-400 bg-white text-slate-600">
+
+          <!-- Color Picker for task -->
+          <div class="flex items-center justify-between text-xs text-slate-500 pt-1">
+            <span class="text-[11px] text-slate-400">색상 선택:</span>
+            <div class="flex gap-1.5" id="color-picker-container">
+              <!-- JS rendered colors -->
+            </div>
+            <button onclick="addTodo()" class="bg-slate-700 hover:bg-slate-800 text-white px-3 py-1 rounded-lg text-xs font-medium transition shadow-sm flex items-center gap-1">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> 추가
+            </button>
+          </div>
+        </div>
+
+        <!-- Todo List Items -->
+        <div class="flex-1 overflow-y-auto p-3 space-y-2 max-h-[500px] lg:max-h-none" id="todo-list-container">
+          <!-- Rendered via JS -->
+        </div>
+      </aside>
+
+      <!-- Right Area: Horizontal Weekly Schedule -->
+      <div class="flex-1 bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 flex flex-col overflow-hidden">
+        <!-- Week Controller -->
+        <div class="flex items-center justify-between mb-3 pb-2.5 border-b border-slate-100">
+          <div class="flex items-center space-x-2">
+            <button onclick="changeWeek(-1)" class="p-1 hover:bg-slate-100 rounded-lg text-slate-500 transition">
+              <i data-lucide="chevron-left" class="w-4 h-4"></i>
+            </button>
+            <h2 id="current-week-text" class="text-sm sm:text-base font-bold text-slate-700">2026년 10월 4주차</h2>
+            <button onclick="changeWeek(1)" class="p-1 hover:bg-slate-100 rounded-lg text-slate-500 transition">
+              <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+            <button onclick="resetToCurrentWeek()" class="text-[11px] px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md transition font-medium">오늘</button>
+          </div>
+        </div>
+
+        <!-- 7 Days Timetable (Horizontal Overflow Enable) -->
+        <div class="flex-1 overflow-x-auto overflow-y-auto">
+          <div class="min-w-[800px] grid grid-cols-7 gap-2">
+            <div id="weekly-grid-container" class="contents">
+              <!-- JS dynamically generates 7 day columns -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: MONTHLY CALENDAR -->
+    <div id="tab-monthly" class="hidden flex-1 bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 flex flex-col min-h-[550px]">
+      <!-- Month Navigation Header -->
+      <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+        <div class="flex items-center space-x-3">
+          <button onclick="changeMonth(-1)" class="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition">
+            <i data-lucide="chevron-left" class="w-5 h-5"></i>
+          </button>
+          <h2 id="current-month-text" class="text-lg font-bold text-slate-700">2026년 10월</h2>
+          <button onclick="changeMonth(1)" class="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition">
+            <i data-lucide="chevron-right" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Days of Week Header -->
+      <div class="grid grid-cols-7 gap-2 mb-2 text-center text-xs font-bold text-slate-400">
+        <div class="text-rose-400">일</div>
+        <div>월</div>
+        <div>화</div>
+        <div>수</div>
+        <div>목</div>
+        <div>금</div>
+        <div class="text-sky-500">토</div>
+      </div>
+
+      <!-- Calendar Days Grid -->
+      <div id="monthly-calendar-grid" class="grid grid-cols-7 gap-2 flex-1 auto-rows-fr min-h-[420px]">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Login/Register Modal -->
+  <div id="auth-modal" class="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white w-full max-w-sm rounded-2xl shadow-lg border border-slate-200 p-6 relative">
+      <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+
+      <h3 class="text-lg font-bold text-slate-800 mb-1" id="auth-title">계정 로그인</h3>
+      <p class="text-xs text-slate-400 mb-5">원하는 아이디와 비밀번호로 개인 플래너 데이터를 저장합니다.</p>
+
+      <form id="auth-form" onsubmit="handleAuth(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">아이디</label>
+          <input type="text" id="auth-email" required placeholder="원하는 아이디 입력 (예: myid)" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-1 focus:ring-slate-400 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">비밀번호</label>
+          <input type="password" id="auth-password" required placeholder="비밀번호 입력" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-1 focus:ring-slate-400 outline-none">
+        </div>
+
+        <div id="auth-error" class="text-xs text-rose-500 hidden"></div>
+
+        <button type="submit" id="auth-submit-btn" class="w-full py-2 bg-slate-700 hover:bg-slate-800 text-white rounded-xl font-medium text-xs transition shadow-sm">
+          로그인
+        </button>
+      </form>
+
+      <div class="mt-4 pt-3 border-t border-slate-100 text-center text-xs text-slate-400">
+        <span id="auth-toggle-text">계정이 없으신가요?</span>
+        <button onclick="toggleAuthMode()" id="auth-toggle-btn" class="text-slate-700 font-semibold ml-1 hover:underline">회원가입</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Color Edit Modal -->
+  <div id="color-modal" class="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white w-full max-w-xs rounded-2xl shadow-lg border border-slate-200 p-5 relative text-center">
+      <h3 class="text-sm font-bold text-slate-700 mb-3">블록 파스텔 색상 변경</h3>
+      <div class="flex justify-center gap-2 mb-4" id="modal-color-picker">
+        <!-- Color buttons rendered dynamically -->
+      </div>
+      <div class="flex gap-2">
+        <button onclick="closeColorModal()" class="flex-1 py-1.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-medium hover:bg-slate-200">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Local App Data & Auth Script -->
+  <script>
+    // Muted Soft Pastel Colors (물탄 빨주노초파 6색 + 회색)
+    const PASTEL_COLORS = [
+      { id: 'rose', bg: 'bg-rose-50/90', text: 'text-rose-800', noteText: 'text-rose-600/80', border: 'border-rose-200/80', badgeBg: '#fca5a5' }, // 물탄 빨강
+      { id: 'amber', bg: 'bg-orange-50/90', text: 'text-orange-800', noteText: 'text-orange-600/80', border: 'border-orange-200/80', badgeBg: '#fdba74' }, // 물탄 주황
+      { id: 'yellow', bg: 'bg-amber-50/90', text: 'text-amber-800', noteText: 'text-amber-600/80', border: 'border-amber-200/80', badgeBg: '#fde047' }, // 물탄 노랑
+      { id: 'emerald', bg: 'bg-emerald-50/90', text: 'text-emerald-800', noteText: 'text-emerald-600/80', border: 'border-emerald-200/80', badgeBg: '#6ee7b7' }, // 물탄 초록
+      { id: 'sky', bg: 'bg-sky-50/90', text: 'text-sky-800', noteText: 'text-sky-600/80', border: 'border-sky-200/80', badgeBg: '#7dd3fc' }, // 물탄 파랑
+      { id: 'slate', bg: 'bg-slate-100/90', text: 'text-slate-800', noteText: 'text-slate-500', border: 'border-slate-300/80', badgeBg: '#cbd5e1' } // 물탄 회색
+    ];
+
+    // State
+    let currentUser = null; // { id, name }
+    let selectedColor = PASTEL_COLORS[0];
+    let selectedEditingTodoId = null;
+    let isRegisterMode = false;
+
+    // Dates State
+    let currentDate = new Date();
+    let currentMonthDate = new Date();
+
+    // Data State (weeklyTodos: { "YYYY-WW": [todos...] })
+    let plannerData = {
+      weeklyTodos: {}, // 주차별 Todo 저장 (Key: Week Key "2026-W43")
+      schedules: {}    // Key: "YYYY-MM-DD-HH", Value: { id, todoId, title, note, colorId, completed }
+    };
+
+    // Helper: 주차 식별 키 생성 (예: "2026-W43")
+    function getWeekKey(date) {
+      const weekDays = getWeekDays(date);
+      const sunday = weekDays[0];
+      const year = sunday.getFullYear();
+      const firstJan = new Date(year, 0, 1);
+      const dayOfYear = ((sunday - firstJan + 86400000) / 86400000);
+      const weekNum = Math.ceil((dayOfYear + firstJan.getDay()) / 7);
+      return `${year}-W${weekNum}`;
+    }
+
+    // 현재 주차의 Todo 리스트 가져오기
+    function getCurrentWeekTodos() {
+      const weekKey = getWeekKey(currentDate);
+      if (!plannerData.weeklyTodos[weekKey]) {
+        plannerData.weeklyTodos[weekKey] = [];
+      }
+      return plannerData.weeklyTodos[weekKey];
+    }
+
+    // Helper: Simple Hash Password
+    function hashPassword(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = (hash << 5) - hash + str.charCodeAt(i);
+        hash |= 0;
+      }
+      return 'h_' + Math.abs(hash).toString(36);
+    }
+
+    // Storage Management
+    function getUsersDB() {
+      const users = localStorage.getItem('wp_users_db');
+      return users ? JSON.parse(users) : {};
+    }
+
+    function saveUsersDB(db) {
+      localStorage.setItem('wp_users_db', JSON.stringify(db));
+    }
+
+    function loadPlannerData() {
+      let loadedData = null;
+      if (!currentUser) {
+        const guestData = localStorage.getItem('wp_guest_data');
+        if (guestData) loadedData = JSON.parse(guestData);
+      } else {
+        const userKey = `wp_user_data_${currentUser.id}`;
+        const userData = localStorage.getItem(userKey);
+        if (userData) loadedData = JSON.parse(userData);
+      }
+
+      if (loadedData) {
+        // 하위 호환성 (구 버전 todos 구조 분기)
+        if (loadedData.todos && !loadedData.weeklyTodos) {
+          const currentKey = getWeekKey(currentDate);
+          plannerData = {
+            weeklyTodos: { [currentKey]: loadedData.todos },
+            schedules: loadedData.schedules || {}
+          };
+        } else {
+          plannerData = {
+            weeklyTodos: loadedData.weeklyTodos || {},
+            schedules: loadedData.schedules || {}
+          };
+        }
+      } else {
+        plannerData = { weeklyTodos: {}, schedules: {} };
+      }
+    }
+
+    function savePlannerData() {
+      if (!currentUser) {
+        localStorage.setItem('wp_guest_data', JSON.stringify(plannerData));
+      } else {
+        const userKey = `wp_user_data_${currentUser.id}`;
+        localStorage.setItem(userKey, JSON.stringify(plannerData));
+      }
+      renderWeeklyView();
+      renderMonthlyView();
+    }
+
+    // Make functions window accessible
+    window.switchTab = switchTab;
+    window.openAuthModal = openAuthModal;
+    window.closeAuthModal = closeAuthModal;
+    window.toggleAuthMode = toggleAuthMode;
+    window.handleAuth = handleAuth;
+    window.handleLogout = handleLogout;
+    window.addTodo = addTodo;
+    window.toggleTodoComplete = toggleTodoComplete;
+    window.deleteTodo = deleteTodo;
+    window.changeWeek = changeWeek;
+    window.resetToCurrentWeek = resetToCurrentWeek;
+    window.changeMonth = changeMonth;
+    window.openColorModal = openColorModal;
+    window.closeColorModal = closeColorModal;
+    window.selectTaskColor = selectTaskColor;
+    window.toggleScheduleComplete = toggleScheduleComplete;
+    window.removeSchedule = removeSchedule;
+
+    // Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      renderColorPickers();
+
+      // Check auto login
+      const sessionUser = sessionStorage.getItem('wp_active_user');
+      if (sessionUser) {
+        currentUser = JSON.parse(sessionUser);
+      }
+
+      updateUserUI();
+      loadPlannerData();
+      renderWeeklyView();
+      renderMonthlyView();
+    });
+
+    // UI Tab Navigation
+    function switchTab(tab) {
+      const weeklyTab = document.getElementById('tab-weekly');
+      const monthlyTab = document.getElementById('tab-monthly');
+      const weeklyBtn = document.getElementById('tab-weekly-btn');
+      const monthlyBtn = document.getElementById('tab-monthly-btn');
+
+      if (tab === 'weekly') {
+        weeklyTab.style.display = 'flex';
+        monthlyTab.style.display = 'none';
+        weeklyBtn.className = "px-3.5 py-1.5 rounded-lg transition-all duration-200 bg-white text-slate-800 shadow-sm font-semibold";
+        monthlyBtn.className = "px-3.5 py-1.5 rounded-lg transition-all duration-200 text-slate-500 hover:text-slate-800";
+        renderWeeklyView();
+      } else {
+        weeklyTab.style.display = 'none';
+        monthlyTab.style.display = 'flex';
+        monthlyBtn.className = "px-3.5 py-1.5 rounded-lg transition-all duration-200 bg-white text-slate-800 shadow-sm font-semibold";
+        weeklyBtn.className = "px-3.5 py-1.5 rounded-lg transition-all duration-200 text-slate-500 hover:text-slate-800";
+        renderMonthlyView();
+      }
+    }
+
+    // Render Color Selector
+    function renderColorPickers() {
+      const container = document.getElementById('color-picker-container');
+      container.innerHTML = PASTEL_COLORS.map(c => `
+        <button type="button" onclick="selectColor('${c.id}')" 
+          class="w-4 h-4 rounded-full border transition transform hover:scale-110 flex items-center justify-center ${selectedColor.id === c.id ? 'ring-2 ring-offset-1 ring-slate-400 scale-110' : ''}" 
+          style="background-color: ${c.badgeBg}; border-color: rgba(0,0,0,0.08);">
+        </button>
+      `).join('');
+
+      // Modal Color Picker
+      const modalContainer = document.getElementById('modal-color-picker');
+      modalContainer.innerHTML = PASTEL_COLORS.map(c => `
+        <button type="button" onclick="selectTaskColor('${c.id}')" 
+          class="w-6 h-6 rounded-full border transition transform hover:scale-110" 
+          style="background-color: ${c.badgeBg}; border-color: rgba(0,0,0,0.08);">
+        </button>
+      `).join('');
+    }
+
+    window.selectColor = function(colorId) {
+      selectedColor = PASTEL_COLORS.find(c => c.id === colorId) || PASTEL_COLORS[0];
+      renderColorPickers();
+    };
+
+    // Color Modal Controls
+    function openColorModal(todoId) {
+      selectedEditingTodoId = todoId;
+      document.getElementById('color-modal').classList.remove('hidden');
+    }
+
+    function closeColorModal() {
+      selectedEditingTodoId = null;
+      document.getElementById('color-modal').classList.add('hidden');
+    }
+
+    function selectTaskColor(colorId) {
+      if (!selectedEditingTodoId) return;
+      const currentTodos = getCurrentWeekTodos();
+      const todo = currentTodos.find(t => t.id === selectedEditingTodoId);
+      if (todo) {
+        todo.colorId = colorId;
+        // Update connected schedule blocks color as well
+        Object.keys(plannerData.schedules).forEach(key => {
+          if (plannerData.schedules[key].todoId === todo.id) {
+            plannerData.schedules[key].colorId = colorId;
+          }
+        });
+
+        savePlannerData();
+      }
+      closeColorModal();
+    }
+
+    // TODO ACTIONS
+    function addTodo() {
+      const inputTitle = document.getElementById('new-todo-title');
+      const inputNote = document.getElementById('new-todo-note');
+      const title = inputTitle.value.trim();
+      const note = inputNote.value.trim();
+
+      if (!title) return;
+
+      const newTodo = {
+        id: 'todo-' + Date.now(),
+        title: title,
+        note: note,
+        completed: false,
+        colorId: selectedColor.id
+      };
+
+      const currentTodos = getCurrentWeekTodos();
+      currentTodos.push(newTodo);
+      inputTitle.value = '';
+      inputNote.value = '';
+      savePlannerData();
+    }
+
+    function toggleTodoComplete(id) {
+      const currentTodos = getCurrentWeekTodos();
+      const todo = currentTodos.find(t => t.id === id);
+      if (todo) {
+        todo.completed = !todo.completed;
+        
+        // 타임테이블 내 동기화 처리
+        Object.keys(plannerData.schedules).forEach(key => {
+          if (plannerData.schedules[key].todoId === id) {
+            plannerData.schedules[key].completed = todo.completed;
+          }
+        });
+
+        savePlannerData();
+      }
+    }
+
+    function deleteTodo(id) {
+      const weekKey = getWeekKey(currentDate);
+      if (plannerData.weeklyTodos[weekKey]) {
+        plannerData.weeklyTodos[weekKey] = plannerData.weeklyTodos[weekKey].filter(t => t.id !== id);
+      }
+      
+      Object.keys(plannerData.schedules).forEach(key => {
+        if (plannerData.schedules[key].todoId === id) {
+          delete plannerData.schedules[key];
+        }
+      });
+      savePlannerData();
+    }
+
+    function toggleScheduleComplete(key) {
+      if (plannerData.schedules[key]) {
+        const sched = plannerData.schedules[key];
+        sched.completed = !sched.completed;
+
+        // 연결된 To-do 항목 동기화
+        if (sched.todoId) {
+          const currentTodos = getCurrentWeekTodos();
+          const todo = currentTodos.find(t => t.id === sched.todoId);
+          if (todo) {
+            todo.completed = sched.completed;
+          }
+          // 동일한 Todo를 가진 다른 모든 블록도 함께 동기화
+          Object.keys(plannerData.schedules).forEach(k => {
+            if (plannerData.schedules[k].todoId === sched.todoId) {
+              plannerData.schedules[k].completed = sched.completed;
+            }
+          });
+        }
+
+        savePlannerData();
+      }
+    }
+
+    function removeSchedule(key) {
+      delete plannerData.schedules[key];
+      savePlannerData();
+    }
+
+    // WEEKLY VIEW LOGIC
+    function getWeekDays(date) {
+      const curr = new Date(date);
+      const first = curr.getDate() - curr.getDay(); // Sunday
+      const days = [];
+
+      for (let i = 0; i < 7; i++) {
+        const next = new Date(curr.setDate(first + i));
+        days.push(next);
+      }
+      return days;
+    }
+
+    function formatDateKey(d) {
+      return d.toISOString().split('T')[0];
+    }
+
+    function changeWeek(offset) {
+      currentDate.setDate(currentDate.getDate() + (offset * 7));
+      renderWeeklyView();
+    }
+
+    function resetToCurrentWeek() {
+      currentDate = new Date();
+      renderWeeklyView();
+    }
+
+    function renderWeeklyView() {
+      const weekDays = getWeekDays(currentDate);
+      const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+      // Header Text
+      const year = weekDays[0].getFullYear();
+      const month = weekDays[0].getMonth() + 1;
+      const weekNum = Math.ceil(weekDays[0].getDate() / 7);
+      document.getElementById('current-week-text').innerText = `${year}년 ${month}월 ${weekNum}주차`;
+
+      // Render Checklist
+      renderTodoList();
+
+      // Render 7 Day Columns Table
+      const container = document.getElementById('weekly-grid-container');
+      container.innerHTML = '';
+
+      // Hours range: 7:00 AM to 2:00 AM (next day: 7..23, 0..2)
+      const timeSlots = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2];
+
+      // Format hour to AM/PM string
+      function formatHourLabel(h) {
+        if (h === 0) return 'AM 12:00';
+        if (h === 12) return 'PM 12:00';
+        if (h < 12) return `AM ${h}:00`;
+        return `PM ${h - 12}:00`;
+      }
+
+      weekDays.forEach((day, index) => {
+        const dateStr = formatDateKey(day);
+        const isToday = formatDateKey(new Date()) === dateStr;
+
+        const dayCol = document.createElement('div');
+        dayCol.className = `flex flex-col border rounded-xl overflow-hidden bg-slate-50/30 ${isToday ? 'border-slate-400/80 ring-1 ring-slate-300' : 'border-slate-200/70'}`;
+
+        // Column Header
+        const header = document.createElement('div');
+        header.className = `p-2 text-center border-b font-medium ${index === 0 ? 'bg-rose-50/50 text-rose-600' : index === 6 ? 'bg-sky-50/50 text-sky-600' : 'bg-slate-100/60 text-slate-700'}`;
+        header.innerHTML = `
+          <div class="text-[11px] opacity-75">${dayNames[index]}요일</div>
+          <div class="text-xs font-bold ${isToday ? 'text-slate-800' : ''}">${day.getMonth() + 1}/${day.getDate()}</div>
+        `;
+        dayCol.appendChild(header);
+
+        // Time slots container
+        const slotsContainer = document.createElement('div');
+        slotsContainer.className = "flex-1 flex flex-col divide-y divide-slate-100/80 bg-white";
+
+        timeSlots.forEach(hour => {
+          const slotKey = `${dateStr}-${hour}`;
+          const scheduleItem = plannerData.schedules[slotKey];
+
+          const slot = document.createElement('div');
+          slot.className = "time-slot min-h-[48px] p-1 flex flex-col justify-center transition-colors relative group";
+          slot.dataset.slotKey = slotKey;
+
+          // Drag Events
+          slot.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            slot.classList.add('drag-over');
+          });
+          slot.addEventListener('dragleave', () => {
+            slot.classList.remove('drag-over');
+          });
+          slot.addEventListener('drop', (e) => {
+            e.preventDefault();
+            slot.classList.remove('drag-over');
+            const todoData = e.dataTransfer.getData('text/plain');
+            if (todoData) {
+              const payload = JSON.parse(todoData);
+              
+              // Handle drop action
+              plannerData.schedules[slotKey] = {
+                id: 'sched-' + Date.now(),
+                todoId: payload.todoId,
+                title: payload.title,
+                colorId: payload.colorId,
+                completed: payload.completed || false
+              };
+
+              // If dragging from another slot, delete old slot
+              if (payload.fromSlotKey && payload.fromSlotKey !== slotKey) {
+                delete plannerData.schedules[payload.fromSlotKey];
+              }
+
+              savePlannerData();
+            }
+          });
+
+          // Slot Content
+          if (scheduleItem) {
+            // To-do의 최신 정보를 반영하여 실시간 동기화
+            const currentTodos = getCurrentWeekTodos();
+            const matchedTodo = currentTodos.find(t => t.id === scheduleItem.todoId);
+            const isCompleted = matchedTodo ? matchedTodo.completed : scheduleItem.completed;
+            const activeColorId = matchedTodo ? matchedTodo.colorId : scheduleItem.colorId;
+            const activeTitle = matchedTodo ? matchedTodo.title : scheduleItem.title;
+            const activeNote = matchedTodo ? (matchedTodo.note || '') : (scheduleItem.note || '');
+
+            const colorObj = PASTEL_COLORS.find(c => c.id === activeColorId) || PASTEL_COLORS[0];
+            
+            const block = document.createElement('div');
+            block.draggable = true;
+            block.className = `w-full h-full p-1.5 rounded-lg border text-[11px] flex flex-col justify-center cursor-move shadow-2xs transition ${colorObj.bg} ${colorObj.border} ${colorObj.text} ${isCompleted ? 'opacity-50 line-through' : ''}`;
+            
+            block.innerHTML = `
+              <div class="flex items-center justify-between gap-1">
+                <div class="flex items-center gap-1.5 truncate">
+                  <input type="checkbox" ${isCompleted ? 'checked' : ''} 
+                    onclick="event.stopPropagation(); toggleScheduleComplete('${slotKey}')"
+                    class="rounded text-slate-600 focus:ring-0 cursor-pointer w-3 h-3">
+                  <span class="truncate font-semibold">${activeTitle}</span>
+                </div>
+                <button onclick="event.stopPropagation(); removeSchedule('${slotKey}')" class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 transition shrink-0">
+                  <i data-lucide="x" class="w-3 h-3"></i>
+                </button>
+              </div>
+              ${activeNote ? `<div class="text-[10px] ${colorObj.noteText} truncate pl-4 mt-0.5 font-normal">${activeNote}</div>` : ''}
+            `;
+
+            // Drag Start from schedule block
+            block.addEventListener('dragstart', (e) => {
+              e.dataTransfer.setData('text/plain', JSON.stringify({
+                todoId: scheduleItem.todoId,
+                title: activeTitle,
+                note: activeNote,
+                colorId: activeColorId,
+                completed: isCompleted,
+                fromSlotKey: slotKey
+              }));
+            });
+
+            slot.appendChild(block);
+          } else {
+            // Hour Label indicator (AM/PM format)
+            slot.innerHTML = `<span class="text-[9px] text-slate-300 pointer-events-none select-none pl-0.5">${formatHourLabel(hour)}</span>`;
+          }
+
+          slotsContainer.appendChild(slot);
+        });
+
+        dayCol.appendChild(slotsContainer);
+        container.appendChild(dayCol);
+      });
+
+      lucide.createIcons();
+    }
+
+    function renderTodoList() {
+      const container = document.getElementById('todo-list-container');
+      const countLabel = document.getElementById('todo-count');
+      const currentTodos = getCurrentWeekTodos();
+      countLabel.innerText = `${currentTodos.length}개`;
+
+      if (currentTodos.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-slate-400 text-xs">
+            이번 주 할 일이 없습니다.<br>새로운 할 일을 등록해보세요!
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = currentTodos.map(todo => {
+        const color = PASTEL_COLORS.find(c => c.id === todo.colorId) || PASTEL_COLORS[0];
+        return `
+          <div draggable="true" id="todo-card-${todo.id}" data-id="${todo.id}"
+            class="group p-2.5 rounded-xl border ${color.bg} ${color.border} shadow-2xs transition hover:shadow-xs flex items-center justify-between gap-1 cursor-move">
+            
+            <div class="flex items-center space-x-2 min-w-0 flex-1">
+              <input type="checkbox" ${todo.completed ? 'checked' : ''} 
+                onclick="toggleTodoComplete('${todo.id}')"
+                class="w-3.5 h-3.5 rounded text-slate-600 focus:ring-0 cursor-pointer shrink-0">
+              
+              <div class="min-w-0 flex-1">
+                <div class="text-xs font-medium ${color.text} truncate ${todo.completed ? 'line-through opacity-50' : ''}">
+                  ${todo.title}
+                </div>
+                ${todo.note ? `<div class="text-[10px] ${color.noteText} truncate ${todo.completed ? 'line-through opacity-50' : ''}">${todo.note}</div>` : ''}
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-1 opacity-80 group-hover:opacity-100 shrink-0">
+              <button onclick="openColorModal('${todo.id}')" title="색상 변경" class="p-0.5 hover:bg-white/60 rounded transition text-slate-400">
+                <span class="w-2.5 h-2.5 rounded-full inline-block" style="background-color: ${color.badgeBg}"></span>
+              </button>
+              <button onclick="deleteTodo('${todo.id}')" title="삭제" class="p-0.5 hover:bg-white/60 rounded transition text-slate-400 hover:text-rose-500">
+                <i data-lucide="trash-2" class="w-3 h-3"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Add drag listeners to list items
+      currentTodos.forEach(todo => {
+        const el = document.getElementById(`todo-card-${todo.id}`);
+        if (el) {
+          el.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', JSON.stringify({
+              todoId: todo.id,
+              title: todo.title,
+              note: todo.note || '',
+              colorId: todo.colorId,
+              completed: todo.completed
+            }));
+          });
+        }
+      });
+
+      lucide.createIcons();
+    }
+
+    // MONTHLY VIEW LOGIC
+    function changeMonth(offset) {
+      currentMonthDate.setMonth(currentMonthDate.getMonth() + offset);
+      renderMonthlyView();
+    }
+
+    function renderMonthlyView() {
+      const year = currentMonthDate.getFullYear();
+      const month = currentMonthDate.getMonth();
+
+      document.getElementById('current-month-text').innerText = `${year}년 ${month + 1}월`;
+
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+
+      const startDayOfWeek = firstDay.getDay(); // 0 is Sun
+      const totalDays = lastDay.getDate();
+
+      const grid = document.getElementById('monthly-calendar-grid');
+      grid.innerHTML = '';
+
+      // Blank slots
+      for (let i = 0; i < startDayOfWeek; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = "bg-slate-50/30 rounded-xl border border-slate-100";
+        grid.appendChild(emptyCell);
+      }
+
+      // Days
+      for (let day = 1; day <= totalDays; day++) {
+        const dateObj = new Date(year, month, day);
+        const dateStr = formatDateKey(dateObj);
+        const isToday = formatDateKey(new Date()) === dateStr;
+
+        const daySchedules = Object.keys(plannerData.schedules)
+          .filter(key => key.startsWith(dateStr))
+          .map(key => plannerData.schedules[key]);
+
+        const hasTasks = daySchedules.length > 0;
+        const isAllCompleted = hasTasks && daySchedules.every(s => s.completed);
+
+        // Determine background style:
+        // - All completed: Soft Pastel Yellow (bg-amber-50)
+        // - Has remaining/incomplete tasks: Soft Light Gray (bg-slate-100/90)
+        // - No tasks: Normal white
+        let bgStyle = 'bg-white border-slate-200/70';
+        if (hasTasks) {
+          if (isAllCompleted) {
+            bgStyle = 'bg-amber-50/90 border-amber-200/90 shadow-2xs';
+          } else {
+            bgStyle = 'bg-slate-100/80 border-slate-200/90 shadow-2xs';
+          }
+        }
+
+        const cell = document.createElement('div');
+        cell.className = `p-2 rounded-xl border flex flex-col justify-between transition ${bgStyle} ${isToday ? 'ring-1 ring-slate-400' : ''}`;
+
+        const dayNumColor = dateObj.getDay() === 0 ? 'text-rose-400' : dateObj.getDay() === 6 ? 'text-sky-500' : 'text-slate-600';
+
+        cell.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold ${dayNumColor}">${day}</span>
+            ${isAllCompleted ? '<i data-lucide="sparkles" class="w-3 h-3 text-amber-500"></i>' : ''}
+          </div>
+          <div class="space-y-1 my-1 overflow-hidden max-h-[55px]">
+            ${daySchedules.slice(0, 2).map(s => `
+              <div class="text-[9px] truncate px-1 py-0.5 rounded bg-slate-200/60 font-medium ${s.completed ? 'line-through opacity-50' : 'text-slate-700'}">
+                ${s.title}
+              </div>
+            `).join('')}
+            ${daySchedules.length > 2 ? `<div class="text-[8px] text-slate-400 pl-1">+${daySchedules.length - 2}개 더보기</div>` : ''}
+          </div>
+          <div class="text-[9px] text-slate-400 text-right font-medium">
+            ${hasTasks ? `${daySchedules.filter(s => s.completed).length}/${daySchedules.length}` : ''}
+          </div>
+        `;
+
+        grid.appendChild(cell);
+      }
+
+      lucide.createIcons();
+    }
+
+    // AUTH HANDLERS (Browser Storage)
+    function openAuthModal() {
+      document.getElementById('auth-modal').classList.remove('hidden');
+    }
+
+    function closeAuthModal() {
+      document.getElementById('auth-modal').classList.add('hidden');
+      document.getElementById('auth-error').classList.add('hidden');
+    }
+
+    function toggleAuthMode() {
+      isRegisterMode = !isRegisterMode;
+      document.getElementById('auth-title').innerText = isRegisterMode ? '회원가입' : '계정 로그인';
+      document.getElementById('auth-submit-btn').innerText = isRegisterMode ? '가입하기' : '로그인';
+      document.getElementById('auth-toggle-text').innerText = isRegisterMode ? '이미 계정이 있으신가요?' : '계정이 없으신가요?';
+      document.getElementById('auth-toggle-btn').innerText = isRegisterMode ? '로그인' : '회원가입';
+    }
+
+    function handleAuth(e) {
+      e.preventDefault();
+      const emailInput = document.getElementById('auth-email').value.trim();
+      const passwordInput = document.getElementById('auth-password').value;
+      const errorEl = document.getElementById('auth-error');
+
+      errorEl.classList.add('hidden');
+
+      if (!emailInput || !passwordInput) {
+        errorEl.innerText = '아이디와 비밀번호를 모두 입력해 주세요.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      const usersDB = getUsersDB();
+      const hashedPass = hashPassword(passwordInput);
+
+      if (isRegisterMode) {
+        // Register
+        if (usersDB[emailInput]) {
+          errorEl.innerText = '이미 존재하는 아이디입니다.';
+          errorEl.classList.remove('hidden');
+          return;
+        }
+
+        usersDB[emailInput] = {
+          id: 'user_' + Date.now(),
+          email: emailInput,
+          password: hashedPass
+        };
+
+        saveUsersDB(usersDB);
+
+        currentUser = {
+          id: usersDB[emailInput].id,
+          email: emailInput
+        };
+
+        sessionStorage.setItem('wp_active_user', JSON.stringify(currentUser));
+        updateUserUI();
+        loadPlannerData();
+        closeAuthModal();
+      } else {
+        // Login
+        const user = usersDB[emailInput];
+        if (!user || user.password !== hashedPass) {
+          errorEl.innerText = '아이디 또는 비밀번호가 일치하지 않습니다.';
+          errorEl.classList.remove('hidden');
+          return;
+        }
+
+        currentUser = {
+          id: user.id,
+          email: user.email
+        };
+
+        sessionStorage.setItem('wp_active_user', JSON.stringify(currentUser));
+        updateUserUI();
+        loadPlannerData();
+        closeAuthModal();
+      }
+    }
+
+    function handleLogout() {
+      sessionStorage.removeItem('wp_active_user');
+      currentUser = null;
+      updateUserUI();
+      loadPlannerData();
+    }
+
+    function updateUserUI() {
+      const badge = document.getElementById('user-badge');
+      const loginBtn = document.getElementById('login-modal-btn');
+      const userAvatar = document.getElementById('user-avatar');
+      const userIdDisplay = document.getElementById('user-id-display');
+
+      if (currentUser) {
+        badge.classList.remove('hidden');
+        badge.classList.add('flex');
+        loginBtn.classList.add('hidden');
+
+        const initial = currentUser.email ? currentUser.email[0].toUpperCase() : 'U';
+        userAvatar.innerText = initial;
+        userIdDisplay.innerText = currentUser.email;
+      } else {
+        badge.classList.add('hidden');
+        badge.classList.remove('flex');
+        loginBtn.classList.remove('hidden');
+      }
+    }
+  </script>
+</body>
+</html>
